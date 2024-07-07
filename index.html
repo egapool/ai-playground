@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>クワガタ風捕食者と被捕食者のシミュレーション</title>
+    <title>
+      クワガタ風捕食者と被捕食者のシミュレーション（捕食者の餓死機能付き）
+    </title>
     <style>
       body {
         margin: 0;
@@ -44,6 +46,7 @@
           this.isMoving = false;
           if (isHunter) {
             this.eatenCount = 0;
+            this.lastMealTime = Date.now(); // 捕食者の最後の捕食時間を追加
           }
         }
 
@@ -55,16 +58,27 @@
           ctx.rotate(this.angle);
 
           if (this.isHunter) {
+            // 捕食者（クワガタ）の描画
+            const timeSinceLastMeal = (Date.now() - this.lastMealTime) / 1000;
+            const starvationLevel = Math.min(timeSinceLastMeal / 30, 1);
+            const baseColor = [139, 69, 19]; // #8B4513 (茶色)
+            const grayColor = [128, 128, 128];
+            const currentColor = baseColor.map((c, i) =>
+              Math.round(c + (grayColor[i] - c) * starvationLevel)
+            );
+
             // クワガタの体
             ctx.beginPath();
             ctx.ellipse(0, 0, this.radius * 2, this.radius, 0, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
+            ctx.fillStyle = `rgb(${currentColor.join(",")})`;
             ctx.fill();
 
             // クワガタの頭
             ctx.beginPath();
             ctx.arc(this.radius * 2, 0, this.radius * 0.8, 0, Math.PI * 2);
-            ctx.fillStyle = "#4a2604";
+            ctx.fillStyle = `rgb(${currentColor
+              .map((c) => Math.max(0, c - 30))
+              .join(",")})`;
             ctx.fill();
 
             // クワガタの大顎
@@ -77,11 +91,15 @@
             ctx.lineTo(this.radius * 3.5, this.radius);
             ctx.lineTo(this.radius * 3.5, this.radius * 0.2);
             ctx.closePath();
-            ctx.fillStyle = "#2c1802";
+            ctx.fillStyle = `rgb(${currentColor
+              .map((c) => Math.max(0, c - 50))
+              .join(",")})`;
             ctx.fill();
 
-            // クワガタの足
-            ctx.strokeStyle = "#2c1802";
+            // クワガタの足と触角（色を変更）
+            ctx.strokeStyle = `rgb(${currentColor
+              .map((c) => Math.max(0, c - 50))
+              .join(",")})`;
             ctx.lineWidth = 2;
             for (let i = -1; i <= 1; i += 0.5) {
               ctx.beginPath();
@@ -287,6 +305,14 @@
               this.movementTimer = Math.floor(Math.random() * 60) + 30;
             }
           }
+          // 餓死チェック（捕食者のみ）
+          if (this.isHunter) {
+            const timeSinceLastMeal = (Date.now() - this.lastMealTime) / 1000;
+            if (timeSinceLastMeal > 30) {
+              this.alive = false;
+              return;
+            }
+          }
 
           if (this.isMoving) {
             this.x += this.dx;
@@ -319,6 +345,7 @@
           ) {
             closestTarget.alive = false;
             this.eatenCount++;
+            this.lastMealTime = Date.now(); // 捕食時間を更新
             if (this.eatenCount % 4 === 0) {
               feces.push(new Feces(this.x, this.y));
             }
