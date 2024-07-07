@@ -15,10 +15,26 @@
       canvas {
         display: block;
       }
+      #population-counter {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        background-color: rgba(255, 255, 255, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: #2c3e50;
+      }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
+    <div id="population-counter">
+      昆虫: <span id="hunter-count">0</span><br />
+      エサ: <span id="prey-count">0</span><br />
+      SPACEキーで昆虫追加
+    </div>
     <script>
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
@@ -32,7 +48,8 @@
           this.y = Math.random() * canvas.height;
           this.radius = isHunter ? 15 : 5;
           this.baseSpeed = isHunter ? 1.5 : 1;
-          this.speed = this.baseSpeed;
+          // 基本速度にランダムな変動を加えて速度を設定する。変動幅は-15%から+15%。
+          this.speed = this.baseSpeed * (1 + (Math.random() * 0.4 - 0.2));
           this.dx = 0;
           this.dy = 0;
           this.color = isHunter
@@ -61,7 +78,7 @@
             // 捕食者（クワガタ）の描画
             const timeSinceLastMeal = (Date.now() - this.lastMealTime) / 1000;
             const starvationLevel = Math.min(timeSinceLastMeal / 30, 1);
-            const baseColor = [139, 69, 19]; // #8B4513 (茶色)
+            const baseColor = [0, 128, 0]; // #008000 (緑色)
             const grayColor = [128, 128, 128];
             const currentColor = baseColor.map((c, i) =>
               Math.round(c + (grayColor[i] - c) * starvationLevel)
@@ -370,7 +387,7 @@
           this.x = x;
           this.y = y;
           this.radius = 3;
-          this.color = "#3d2b1f";
+          this.color = "#FFFFFF";
         }
 
         draw() {
@@ -398,6 +415,13 @@
 
       setInterval(addNewPrey, 1000); // 1秒ごとに新しい被捕食者を追加
 
+      function updatePopulationCounter() {
+        const hunterCount = creatures.filter((c) => c.isHunter).length;
+        const preyCount = creatures.filter((c) => !c.isHunter).length;
+        document.getElementById("hunter-count").textContent = hunterCount;
+        document.getElementById("prey-count").textContent = preyCount;
+      }
+
       function animate() {
         requestAnimationFrame(animate);
         ctx.fillStyle = "rgba(44, 62, 80, 0.2)";
@@ -408,6 +432,9 @@
 
         // 死んだ生物を配列から削除
         creatures = creatures.filter((creature) => creature.alive);
+
+        // 個体数カウンターを更新
+        updatePopulationCounter();
       }
 
       animate();
