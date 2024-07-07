@@ -3,11 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>捕食と逃避行動する昆虫型捕食者と被捕食者</title>
+    <title>クワガタ風捕食者と被捕食者のシミュレーション</title>
     <style>
       body {
         margin: 0;
         overflow: hidden;
+        background-color: #2c3e50;
       }
       canvas {
         display: block;
@@ -27,16 +28,14 @@
         constructor(isHunter = false) {
           this.x = Math.random() * canvas.width;
           this.y = Math.random() * canvas.height;
-          this.radius = isHunter ? 12.5 : 5;
-          this.baseSpeed = isHunter ? 2 : 1;
+          this.radius = isHunter ? 15 : 5;
+          this.baseSpeed = isHunter ? 1.5 : 1;
           this.speed = this.baseSpeed;
           this.dx = 0;
           this.dy = 0;
           this.color = isHunter
             ? "#8B4513"
-            : `rgb(${Math.random() * 255},${Math.random() * 255},${
-                Math.random() * 255
-              })`;
+            : `hsl(${Math.random() * 360}, 70%, 50%)`;
           this.isHunter = isHunter;
           this.angle = 0;
           this.alive = true;
@@ -56,44 +55,118 @@
           ctx.rotate(this.angle);
 
           if (this.isHunter) {
-            // 胴体 (楕円)
+            // クワガタの体
             ctx.beginPath();
             ctx.ellipse(0, 0, this.radius * 2, this.radius, 0, 0, Math.PI * 2);
             ctx.fillStyle = this.color;
             ctx.fill();
 
-            // 頭 (三角形)
+            // クワガタの頭
             ctx.beginPath();
-            ctx.moveTo(this.radius * 2, 0);
-            ctx.lineTo(this.radius * 2.5, -this.radius / 2);
-            ctx.lineTo(this.radius * 2.5, this.radius / 2);
-            ctx.closePath();
-            ctx.fillStyle = "#000000";
+            ctx.arc(this.radius * 2, 0, this.radius * 0.8, 0, Math.PI * 2);
+            ctx.fillStyle = "#4a2604";
             ctx.fill();
 
-            // 足 (線)
-            ctx.strokeStyle = "#000000";
-            ctx.lineWidth = 1;
+            // クワガタの大顎
+            ctx.beginPath();
+            ctx.moveTo(this.radius * 2.5, -this.radius * 0.5);
+            ctx.lineTo(this.radius * 3.5, -this.radius);
+            ctx.lineTo(this.radius * 3.5, -this.radius * 0.2);
+            ctx.closePath();
+            ctx.moveTo(this.radius * 2.5, this.radius * 0.5);
+            ctx.lineTo(this.radius * 3.5, this.radius);
+            ctx.lineTo(this.radius * 3.5, this.radius * 0.2);
+            ctx.closePath();
+            ctx.fillStyle = "#2c1802";
+            ctx.fill();
+
+            // クワガタの足
+            ctx.strokeStyle = "#2c1802";
+            ctx.lineWidth = 2;
             for (let i = -1; i <= 1; i += 0.5) {
               ctx.beginPath();
               ctx.moveTo(this.radius * i, -this.radius);
-              ctx.lineTo(this.radius * i, -this.radius * 1.5);
+              ctx.quadraticCurveTo(
+                this.radius * i,
+                -this.radius * 1.5,
+                this.radius * (i + 0.3),
+                -this.radius * 1.7
+              );
               ctx.moveTo(this.radius * i, this.radius);
-              ctx.lineTo(this.radius * i, this.radius * 1.5);
+              ctx.quadraticCurveTo(
+                this.radius * i,
+                this.radius * 1.5,
+                this.radius * (i + 0.3),
+                this.radius * 1.7
+              );
               ctx.stroke();
             }
 
-            // 触覚
+            // クワガタの触角
             ctx.beginPath();
-            ctx.moveTo(this.radius * 2, -this.radius / 4);
-            ctx.lineTo(this.radius * 2.5, -this.radius);
-            ctx.moveTo(this.radius * 2, this.radius / 4);
-            ctx.lineTo(this.radius * 2.5, this.radius);
+            ctx.moveTo(this.radius * 2.5, -this.radius * 0.4);
+            ctx.quadraticCurveTo(
+              this.radius * 3,
+              -this.radius * 1.2,
+              this.radius * 3.5,
+              -this.radius * 1
+            );
+            ctx.moveTo(this.radius * 2.5, this.radius * 0.4);
+            ctx.quadraticCurveTo(
+              this.radius * 3,
+              this.radius * 1.2,
+              this.radius * 3.5,
+              this.radius * 1
+            );
             ctx.stroke();
           } else {
+            // 被捕食者（小さな虫）
             ctx.beginPath();
-            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.ellipse(
+              0,
+              0,
+              this.radius * 1.5,
+              this.radius,
+              0,
+              0,
+              Math.PI * 2
+            );
             ctx.fillStyle = this.color;
+            ctx.fill();
+
+            // 羽
+            ctx.beginPath();
+            ctx.ellipse(
+              -this.radius * 0.5,
+              0,
+              this.radius,
+              this.radius * 0.6,
+              Math.PI / 4,
+              0,
+              Math.PI * 2
+            );
+            ctx.fillStyle = `hsla(${
+              this.color.split(",")[0].split("(")[1]
+            }, 70%, 70%, 0.7)`;
+            ctx.fill();
+
+            // 目
+            ctx.beginPath();
+            ctx.arc(
+              this.radius,
+              -this.radius * 0.3,
+              this.radius * 0.2,
+              0,
+              Math.PI * 2
+            );
+            ctx.arc(
+              this.radius,
+              this.radius * 0.3,
+              this.radius * 0.2,
+              0,
+              Math.PI * 2
+            );
+            ctx.fillStyle = "#000";
             ctx.fill();
           }
 
@@ -246,7 +319,7 @@
           ) {
             closestTarget.alive = false;
             this.eatenCount++;
-            if (this.eatenCount % 10 === 0) {
+            if (this.eatenCount % 4 === 0) {
               feces.push(new Feces(this.x, this.y));
             }
           } else if (
@@ -270,7 +343,7 @@
           this.x = x;
           this.y = y;
           this.radius = 3;
-          this.color = "#8B4513";
+          this.color = "#3d2b1f";
         }
 
         draw() {
@@ -283,7 +356,7 @@
 
       let creatures = [
         ...Array.from({ length: 5 }, () => new Creature(true)), // 捕食者
-        ...Array.from({ length: 300 }, () => new Creature()), // 被捕食者
+        ...Array.from({ length: 500 }, () => new Creature()), // 被捕食者
       ];
 
       let feces = [];
@@ -300,7 +373,8 @@
 
       function animate() {
         requestAnimationFrame(animate);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "rgba(44, 62, 80, 0.2)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         creatures.forEach((creature) => creature.update(creatures, feces));
         feces.forEach((fece) => fece.draw());
