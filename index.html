@@ -54,6 +54,23 @@
           this.isMoving = false;
         }
 
+        avoidOverlap(creatures) {
+          const repulsionForce = 0.5;
+          const minDistance = this.radius * 2;
+
+          creatures.forEach((other) => {
+            if (other !== this && other instanceof Hunter) {
+              const distance = Math.hypot(this.x - other.x, this.y - other.y);
+              if (distance < minDistance) {
+                const angle = Math.atan2(this.y - other.y, this.x - other.x);
+                const force = (minDistance - distance) * repulsionForce;
+                this.dx += Math.cos(angle) * force;
+                this.dy += Math.sin(angle) * force;
+              }
+            }
+          });
+        }
+
         updatePosition() {
           if (this.isMoving) {
             this.x += this.dx;
@@ -238,6 +255,7 @@
             return;
           }
 
+          this.avoidOverlap(creatures);
           this.updatePosition();
 
           // 捕食処理
