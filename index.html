@@ -42,295 +42,19 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
-      class Creature {
-        constructor(isHunter = false) {
+      class BaseCreature {
+        constructor() {
           this.x = Math.random() * canvas.width;
           this.y = Math.random() * canvas.height;
-          this.radius = isHunter ? (Math.random() < 0.01 ? 30 : 15) : 5;
-          this.baseSpeed = isHunter ? 1.5 : 1;
-          // 基本速度にランダムな変動を加えて速度を設定する。変動幅は-15%から+15%。
-          this.speed = this.baseSpeed * (1 + (Math.random() * 0.4 - 0.2));
           this.dx = 0;
           this.dy = 0;
-          this.color = isHunter
-            ? "#8B4513"
-            : `hsl(${Math.random() * 360}, 70%, 50%)`;
-          this.isHunter = isHunter;
           this.angle = 0;
           this.alive = true;
-          this.searchRadius = isHunter ? this.radius * 10 : this.radius * 20;
           this.movementTimer = 0;
           this.isMoving = false;
-          if (isHunter) {
-            this.eatenCount = 0;
-            this.lastMealTime = Date.now(); // 捕食者の最後の捕食時間を追加
-          }
         }
 
-        draw() {
-          if (!this.alive) return;
-
-          ctx.save();
-          ctx.translate(this.x, this.y);
-          ctx.rotate(this.angle);
-
-          if (this.isHunter) {
-            // 捕食者（クワガタ）の描画
-            const timeSinceLastMeal = (Date.now() - this.lastMealTime) / 1000;
-            const starvationLevel = Math.min(timeSinceLastMeal / 30, 1);
-            const baseColor = [50, 50, 255]; // #0000FF (青色)
-            const grayColor = [128, 128, 128];
-            const currentColor = baseColor.map((c, i) =>
-              Math.round(c + (grayColor[i] - c) * starvationLevel)
-            );
-
-            // クワガタの体
-            ctx.beginPath();
-            ctx.ellipse(0, 0, this.radius * 2, this.radius, 0, 0, Math.PI * 2);
-            ctx.fillStyle = `rgb(${currentColor.join(",")})`;
-            ctx.fill();
-
-            // クワガタの頭
-            ctx.beginPath();
-            ctx.arc(this.radius * 2, 0, this.radius * 0.8, 0, Math.PI * 2);
-            ctx.fillStyle = `rgb(${currentColor
-              .map((c) => Math.max(0, c - 30))
-              .join(",")})`;
-            ctx.fill();
-
-            // クワガタの大顎
-            ctx.beginPath();
-            ctx.moveTo(this.radius * 2.5, -this.radius * 0.5);
-            ctx.lineTo(this.radius * 3.5, -this.radius);
-            ctx.lineTo(this.radius * 3.5, -this.radius * 0.2);
-            ctx.closePath();
-            ctx.moveTo(this.radius * 2.5, this.radius * 0.5);
-            ctx.lineTo(this.radius * 3.5, this.radius);
-            ctx.lineTo(this.radius * 3.5, this.radius * 0.2);
-            ctx.closePath();
-            ctx.fillStyle = `rgb(${currentColor
-              .map((c) => Math.max(0, c - 50))
-              .join(",")})`;
-            ctx.fill();
-
-            // クワガタの足と触角（色を変更）
-            ctx.strokeStyle = `rgb(${currentColor
-              .map((c) => Math.max(0, c - 50))
-              .join(",")})`;
-            ctx.lineWidth = 2;
-            for (let i = -1; i <= 1; i += 0.5) {
-              ctx.beginPath();
-              ctx.moveTo(this.radius * i, -this.radius);
-              ctx.quadraticCurveTo(
-                this.radius * i,
-                -this.radius * 1.5,
-                this.radius * (i + 0.3),
-                -this.radius * 1.7
-              );
-              ctx.moveTo(this.radius * i, this.radius);
-              ctx.quadraticCurveTo(
-                this.radius * i,
-                this.radius * 1.5,
-                this.radius * (i + 0.3),
-                this.radius * 1.7
-              );
-              ctx.stroke();
-            }
-
-            // クワガタの触角
-            ctx.beginPath();
-            ctx.moveTo(this.radius * 2.5, -this.radius * 0.4);
-            ctx.quadraticCurveTo(
-              this.radius * 3,
-              -this.radius * 1.2,
-              this.radius * 3.5,
-              -this.radius * 1
-            );
-            ctx.moveTo(this.radius * 2.5, this.radius * 0.4);
-            ctx.quadraticCurveTo(
-              this.radius * 3,
-              this.radius * 1.2,
-              this.radius * 3.5,
-              this.radius * 1
-            );
-            ctx.stroke();
-          } else {
-            // 被捕食者（小さな虫）
-            ctx.beginPath();
-            ctx.ellipse(
-              0,
-              0,
-              this.radius * 1.5,
-              this.radius,
-              0,
-              0,
-              Math.PI * 2
-            );
-            ctx.fillStyle = this.color;
-            ctx.fill();
-
-            // 羽
-            ctx.beginPath();
-            ctx.ellipse(
-              -this.radius * 0.5,
-              0,
-              this.radius,
-              this.radius * 0.6,
-              Math.PI / 4,
-              0,
-              Math.PI * 2
-            );
-            ctx.fillStyle = `hsla(${
-              this.color.split(",")[0].split("(")[1]
-            }, 70%, 70%, 0.7)`;
-            ctx.fill();
-
-            // 目
-            ctx.beginPath();
-            ctx.arc(
-              this.radius,
-              -this.radius * 0.3,
-              this.radius * 0.2,
-              0,
-              Math.PI * 2
-            );
-            ctx.arc(
-              this.radius,
-              this.radius * 0.3,
-              this.radius * 0.2,
-              0,
-              Math.PI * 2
-            );
-            ctx.fillStyle = "#000";
-            ctx.fill();
-          }
-
-          ctx.restore();
-        }
-
-        update(creatures, feces) {
-          if (!this.alive) return;
-
-          let closestTarget = null;
-          let closestTargetDistance = Infinity;
-          let closestHunter = null;
-          let closestHunterDistance = Infinity;
-          let closestFeces = null;
-          let closestFecesDistance = Infinity;
-
-          const targets = this.isHunter
-            ? creatures.filter(
-                (c) => !c.isHunter && this.radius * 0.7 > c.radius
-              )
-            : feces;
-
-          creatures.forEach((creature) => {
-            if (creature !== this && creature.alive) {
-              const distance = Math.hypot(
-                creature.x - this.x,
-                creature.y - this.y
-              );
-              if (this.isHunter && !creature.isHunter) {
-                if (
-                  distance < this.searchRadius &&
-                  distance < closestTargetDistance
-                ) {
-                  closestTargetDistance = distance;
-                  closestTarget = creature;
-                }
-              } else if (!this.isHunter && creature.isHunter) {
-                if (
-                  distance < this.searchRadius &&
-                  distance < closestHunterDistance
-                ) {
-                  closestHunterDistance = distance;
-                  closestHunter = creature;
-                }
-              }
-            }
-          });
-
-          if (!this.isHunter) {
-            feces.forEach((feces) => {
-              const distance = Math.hypot(feces.x - this.x, feces.y - this.y);
-              if (
-                distance < this.searchRadius &&
-                distance < closestFecesDistance
-              ) {
-                closestFecesDistance = distance;
-                closestFeces = feces;
-              }
-            });
-          }
-
-          if (this.isHunter && closestTarget) {
-            const angle = Math.atan2(
-              closestTarget.y - this.y,
-              closestTarget.x - this.x
-            );
-            this.dx = Math.cos(angle) * this.speed;
-            this.dy = Math.sin(angle) * this.speed;
-            this.isMoving = true;
-          } else if (!this.isHunter) {
-            if (closestHunter) {
-              // 捕食者がいる場合は逃げる（最優先）
-              const angle = Math.atan2(
-                this.y - closestHunter.y,
-                this.x - closestHunter.x
-              );
-              this.dx = Math.cos(angle) * this.speed * 1.2; // 逃げる速度を少し上げる
-              this.dy = Math.sin(angle) * this.speed * 1.2;
-              this.isMoving = true;
-            } else if (closestFeces) {
-              // 捕食者がいない場合は糞を追跡
-              const angle = Math.atan2(
-                closestFeces.y - this.y,
-                closestFeces.x - this.x
-              );
-              this.dx = Math.cos(angle) * this.speed;
-              this.dy = Math.sin(angle) * this.speed;
-              this.isMoving = true;
-            } else {
-              // 何もない場合はランダムに移動
-              this.movementTimer--;
-              if (this.movementTimer <= 0) {
-                this.isMoving = Math.random() < 0.5;
-                if (this.isMoving) {
-                  const angle = Math.random() * Math.PI * 2;
-                  this.dx = Math.cos(angle) * this.speed;
-                  this.dy = Math.sin(angle) * this.speed;
-                } else {
-                  this.dx = 0;
-                  this.dy = 0;
-                }
-                this.movementTimer = Math.floor(Math.random() * 60) + 30;
-              }
-            }
-          } else {
-            // 捕食者で目標がない場合
-            this.movementTimer--;
-            if (this.movementTimer <= 0) {
-              this.isMoving = Math.random() < 0.5;
-              if (this.isMoving) {
-                const angle = Math.random() * Math.PI * 2;
-                this.dx = Math.cos(angle) * this.speed;
-                this.dy = Math.sin(angle) * this.speed;
-              } else {
-                this.dx = 0;
-                this.dy = 0;
-              }
-              this.movementTimer = Math.floor(Math.random() * 60) + 30;
-            }
-          }
-          // 餓死チェック（捕食者のみ）
-          if (this.isHunter) {
-            const timeSinceLastMeal = (Date.now() - this.lastMealTime) / 1000;
-            if (timeSinceLastMeal > 30) {
-              this.alive = false;
-              return;
-            }
-          }
-
+        updatePosition() {
           if (this.isMoving) {
             this.x += this.dx;
             this.y += this.dy;
@@ -353,21 +77,308 @@
             this.y = this.radius;
             this.dy = Math.abs(this.dy);
           }
+        }
 
-          // 捕食・成長処理
+        randomMove() {
+          this.movementTimer--;
+          if (this.movementTimer <= 0) {
+            this.isMoving = Math.random() < 0.5;
+            if (this.isMoving) {
+              const angle = Math.random() * Math.PI * 2;
+              this.dx = Math.cos(angle) * this.speed;
+              this.dy = Math.sin(angle) * this.speed;
+            } else {
+              this.dx = 0;
+              this.dy = 0;
+            }
+            this.movementTimer = Math.floor(Math.random() * 60) + 30;
+          }
+        }
+      }
+
+      class Hunter extends BaseCreature {
+        constructor() {
+          super();
+          this.radius = Math.random() < 0.01 ? 30 : 15;
+          this.baseSpeed = 1.5;
+          this.speed = this.baseSpeed * (1 + (Math.random() * 0.4 - 0.2));
+          this.searchRadius = this.radius * 10;
+          this.eatenCount = 0;
+          this.lastMealTime = Date.now();
+        }
+
+        draw() {
+          if (!this.alive) return;
+
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.angle);
+
+          const timeSinceLastMeal = (Date.now() - this.lastMealTime) / 1000;
+          const starvationLevel = Math.min(timeSinceLastMeal / 30, 1);
+          const baseColor = [50, 50, 255];
+          const grayColor = [128, 128, 128];
+          const currentColor = baseColor.map((c, i) =>
+            Math.round(c + (grayColor[i] - c) * starvationLevel)
+          );
+
+          // クワガタの体
+          ctx.beginPath();
+          ctx.ellipse(0, 0, this.radius * 2, this.radius, 0, 0, Math.PI * 2);
+          ctx.fillStyle = `rgb(${currentColor.join(",")})`;
+          ctx.fill();
+
+          // クワガタの頭
+          ctx.beginPath();
+          ctx.arc(this.radius * 2, 0, this.radius * 0.8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgb(${currentColor
+            .map((c) => Math.max(0, c - 30))
+            .join(",")})`;
+          ctx.fill();
+
+          // クワガタの大顎
+          ctx.beginPath();
+          ctx.moveTo(this.radius * 2.5, -this.radius * 0.5);
+          ctx.lineTo(this.radius * 3.5, -this.radius);
+          ctx.lineTo(this.radius * 3.5, -this.radius * 0.2);
+          ctx.closePath();
+          ctx.moveTo(this.radius * 2.5, this.radius * 0.5);
+          ctx.lineTo(this.radius * 3.5, this.radius);
+          ctx.lineTo(this.radius * 3.5, this.radius * 0.2);
+          ctx.closePath();
+          ctx.fillStyle = `rgb(${currentColor
+            .map((c) => Math.max(0, c - 50))
+            .join(",")})`;
+          ctx.fill();
+
+          // クワガタの足と触角
+          ctx.strokeStyle = `rgb(${currentColor
+            .map((c) => Math.max(0, c - 50))
+            .join(",")})`;
+          ctx.lineWidth = 2;
+          for (let i = -1; i <= 1; i += 0.5) {
+            ctx.beginPath();
+            ctx.moveTo(this.radius * i, -this.radius);
+            ctx.quadraticCurveTo(
+              this.radius * i,
+              -this.radius * 1.5,
+              this.radius * (i + 0.3),
+              -this.radius * 1.7
+            );
+            ctx.moveTo(this.radius * i, this.radius);
+            ctx.quadraticCurveTo(
+              this.radius * i,
+              this.radius * 1.5,
+              this.radius * (i + 0.3),
+              this.radius * 1.7
+            );
+            ctx.stroke();
+          }
+
+          // クワガタの触角
+          ctx.beginPath();
+          ctx.moveTo(this.radius * 2.5, -this.radius * 0.4);
+          ctx.quadraticCurveTo(
+            this.radius * 3,
+            -this.radius * 1.2,
+            this.radius * 3.5,
+            -this.radius * 1
+          );
+          ctx.moveTo(this.radius * 2.5, this.radius * 0.4);
+          ctx.quadraticCurveTo(
+            this.radius * 3,
+            this.radius * 1.2,
+            this.radius * 3.5,
+            this.radius * 1
+          );
+          ctx.stroke();
+
+          ctx.restore();
+        }
+
+        update(creatures, feces) {
+          if (!this.alive) return;
+
+          let closestTarget = null;
+          let closestTargetDistance = Infinity;
+
+          const targets = creatures.filter(
+            (c) => c instanceof Prey && this.radius * 0.7 > c.radius
+          );
+
+          targets.forEach((prey) => {
+            if (prey.alive) {
+              const distance = Math.hypot(prey.x - this.x, prey.y - this.y);
+              if (
+                distance < this.searchRadius &&
+                distance < closestTargetDistance
+              ) {
+                closestTargetDistance = distance;
+                closestTarget = prey;
+              }
+            }
+          });
+
+          if (closestTarget) {
+            const angle = Math.atan2(
+              closestTarget.y - this.y,
+              closestTarget.x - this.x
+            );
+            this.dx = Math.cos(angle) * this.speed;
+            this.dy = Math.sin(angle) * this.speed;
+            this.isMoving = true;
+          } else {
+            this.randomMove();
+          }
+
+          // 餓死チェック
+          const timeSinceLastMeal = (Date.now() - this.lastMealTime) / 1000;
+          if (timeSinceLastMeal > 30) {
+            this.alive = false;
+            return;
+          }
+
+          this.updatePosition();
+
+          // 捕食処理
           if (
-            this.isHunter &&
             closestTarget &&
             closestTargetDistance < this.radius + closestTarget.radius
           ) {
             closestTarget.alive = false;
             this.eatenCount++;
-            this.lastMealTime = Date.now(); // 捕食時間を更新
+            this.lastMealTime = Date.now();
             if (this.eatenCount % 4 === 0) {
               feces.push(new Feces(this.x, this.y));
             }
-          } else if (
-            !this.isHunter &&
+          }
+
+          this.draw();
+        }
+      }
+
+      class Prey extends BaseCreature {
+        constructor() {
+          super();
+          this.radius = 5;
+          this.baseSpeed = 1;
+          this.speed = this.baseSpeed * (1 + (Math.random() * 0.4 - 0.2));
+          this.color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+          this.searchRadius = this.radius * 20;
+        }
+
+        draw() {
+          if (!this.alive) return;
+
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.angle);
+
+          // 被捕食者の体
+          ctx.beginPath();
+          ctx.ellipse(0, 0, this.radius * 1.5, this.radius, 0, 0, Math.PI * 2);
+          ctx.fillStyle = this.color;
+          ctx.fill();
+
+          // 羽
+          ctx.beginPath();
+          ctx.ellipse(
+            -this.radius * 0.5,
+            0,
+            this.radius,
+            this.radius * 0.6,
+            Math.PI / 4,
+            0,
+            Math.PI * 2
+          );
+          ctx.fillStyle = `hsla(${
+            this.color.split(",")[0].split("(")[1]
+          }, 70%, 70%, 0.7)`;
+          ctx.fill();
+
+          // 目
+          ctx.beginPath();
+          ctx.arc(
+            this.radius,
+            -this.radius * 0.3,
+            this.radius * 0.2,
+            0,
+            Math.PI * 2
+          );
+          ctx.arc(
+            this.radius,
+            this.radius * 0.3,
+            this.radius * 0.2,
+            0,
+            Math.PI * 2
+          );
+          ctx.fillStyle = "#000";
+          ctx.fill();
+
+          ctx.restore();
+        }
+
+        update(creatures, feces) {
+          if (!this.alive) return;
+
+          let closestHunter = null;
+          let closestHunterDistance = Infinity;
+          let closestFeces = null;
+          let closestFecesDistance = Infinity;
+
+          creatures.forEach((creature) => {
+            if (creature instanceof Hunter && creature.alive) {
+              const distance = Math.hypot(
+                creature.x - this.x,
+                creature.y - this.y
+              );
+              if (
+                distance < this.searchRadius &&
+                distance < closestHunterDistance
+              ) {
+                closestHunterDistance = distance;
+                closestHunter = creature;
+              }
+            }
+          });
+
+          feces.forEach((feces) => {
+            const distance = Math.hypot(feces.x - this.x, feces.y - this.y);
+            if (
+              distance < this.searchRadius &&
+              distance < closestFecesDistance
+            ) {
+              closestFecesDistance = distance;
+              closestFeces = feces;
+            }
+          });
+
+          if (closestHunter) {
+            // 捕食者がいる場合は逃げる（最優先）
+            const angle = Math.atan2(
+              this.y - closestHunter.y,
+              this.x - closestHunter.x
+            );
+            this.dx = Math.cos(angle) * this.speed * 1.2;
+            this.dy = Math.sin(angle) * this.speed * 1.2;
+            this.isMoving = true;
+          } else if (closestFeces) {
+            // 捕食者がいない場合は糞を追跡
+            const angle = Math.atan2(
+              closestFeces.y - this.y,
+              closestFeces.x - this.x
+            );
+            this.dx = Math.cos(angle) * this.speed;
+            this.dy = Math.sin(angle) * this.speed;
+            this.isMoving = true;
+          } else {
+            this.randomMove();
+          }
+
+          this.updatePosition();
+
+          // 糞を食べる処理
+          if (
             closestFeces &&
             closestFecesDistance < this.radius + closestFeces.radius
           ) {
@@ -399,25 +410,25 @@
       }
 
       let creatures = [
-        ...Array.from({ length: 5 }, () => new Creature(true)), // 捕食者
-        ...Array.from({ length: 500 }, () => new Creature()), // 被捕食者
+        ...Array.from({ length: 5 }, () => new Hunter()),
+        ...Array.from({ length: 500 }, () => new Prey()),
       ];
 
       let feces = [];
 
       function addNewPrey() {
-        creatures.push(new Creature());
+        creatures.push(new Prey());
       }
 
       function addNewHunter() {
-        creatures.push(new Creature(true));
+        creatures.push(new Hunter());
       }
 
-      setInterval(addNewPrey, 1000); // 1秒ごとに新しい被捕食者を追加
+      setInterval(addNewPrey, 1000);
 
       function updatePopulationCounter() {
-        const hunterCount = creatures.filter((c) => c.isHunter).length;
-        const preyCount = creatures.filter((c) => !c.isHunter).length;
+        const hunterCount = creatures.filter((c) => c instanceof Hunter).length;
+        const preyCount = creatures.filter((c) => c instanceof Prey).length;
         document.getElementById("hunter-count").textContent = hunterCount;
         document.getElementById("prey-count").textContent = preyCount;
       }
@@ -430,10 +441,8 @@
         creatures.forEach((creature) => creature.update(creatures, feces));
         feces.forEach((fece) => fece.draw());
 
-        // 死んだ生物を配列から削除
         creatures = creatures.filter((creature) => creature.alive);
 
-        // 個体数カウンターを更新
         updatePopulationCounter();
       }
 
@@ -444,7 +453,6 @@
         canvas.height = window.innerHeight;
       });
 
-      // スペースキーで捕食者を追加
       window.addEventListener("keydown", (event) => {
         if (event.code === "Space") {
           addNewHunter();
