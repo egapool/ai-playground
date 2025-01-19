@@ -1,0 +1,60 @@
+{
+  "language": "japanese",
+  "commit": {
+    "rules": [
+      {
+        "type": "feat",
+        "description": "新機能の追加"
+      },
+      {
+        "type": "fix",
+        "description": "バグ修正"
+      },
+      {
+        "type": "docs",
+        "description": "ドキュメントの更新"
+      },
+      {
+        "type": "style",
+        "description": "コードスタイルの修正（スペース、フォーマット、セミコロンなど）"
+      },
+      {
+        "type": "refactor",
+        "description": "リファクタリング"
+      },
+      {
+        "type": "test",
+        "description": "テストの追加・修正"
+      },
+      {
+        "type": "chore",
+        "description": "ビルドプロセスやツールの変更"
+      }
+    ],
+    "format": "{type}: {description}",
+    "maxLength": 72
+  },
+  "code": {
+    "style": {
+      "indentation": 2,
+      "maxLineLength": 100,
+      "quoteStyle": "single"
+    }
+  },
+  "project": {
+    "rules": [
+      {
+        "name": "no-console",
+        "description": "console.log の使用を禁止（デバッグ目的以外）"
+      },
+      {
+        "name": "meaningful-names",
+        "description": "変数名やファイル名は意味のある名前をつける"
+      },
+      {
+        "name": "comments-japanese",
+        "description": "コメントは日本語で記述する"
+      }
+    ]
+  }
+}
