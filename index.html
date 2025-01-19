@@ -46,7 +46,7 @@
         constructor(isHunter = false) {
           this.x = Math.random() * canvas.width;
           this.y = Math.random() * canvas.height;
-          this.radius = isHunter ? 15 : 5;
+          this.radius = isHunter ? (Math.random() < 0.01 ? 30 : 15) : 5;
           this.baseSpeed = isHunter ? 1.5 : 1;
           // 基本速度にランダムな変動を加えて速度を設定する。変動幅は-15%から+15%。
           this.speed = this.baseSpeed * (1 + (Math.random() * 0.4 - 0.2));
