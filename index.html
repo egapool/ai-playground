@@ -105,6 +105,7 @@
           this.searchRadius = this.radius * 10;
           this.eatenCount = 0;
           this.lastMealTime = Date.now();
+          this.isMale = Math.random() < 0.5;
         }
 
         draw() {
@@ -116,7 +117,7 @@
 
           const timeSinceLastMeal = (Date.now() - this.lastMealTime) / 1000;
           const starvationLevel = Math.min(timeSinceLastMeal / 30, 1);
-          const baseColor = [50, 50, 255];
+          const baseColor = this.isMale ? [50, 50, 255] : [165, 42, 42];
           const grayColor = [128, 128, 128];
           const currentColor = baseColor.map((c, i) =>
             Math.round(c + (grayColor[i] - c) * starvationLevel)
