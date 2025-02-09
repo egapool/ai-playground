@@ -1,27 +1,33 @@
-# Stag Beetle Style Predator and Prey Simulation
+# AI Playground
 
-This project is an interactive ecosystem simulation that runs in a web browser. It features predators (styled as stag beetles) and prey (small insects), with the predators having a starvation feature.
+A collection of experimental projects exploring AI algorithms and mathematical concepts, all running in the browser and deployed on GitHub Pages.
 
-## Features
+## Projects
 
-- **Dynamic Canvas Size**: The canvas size adjusts according to the browser window size.
-- **Creature Generation and Behavior**: Predators and prey move around on the canvas. Predators face the risk of starvation and will die if they do not eat within a certain time.
-- **Interactions**: Press the space key to add new predators to the simulation.
-- **Natural Movements**: Creatures move randomly or with purpose. Predators chase prey, and prey flee from predators.
+### [Cockroach Simulation](https://egapool.github.io/ai-playground/cockroach/)
 
-## Technologies Used
+A fascinating simulation that models cockroach behavior, demonstrating swarm intelligence and photophobic responses. Watch as virtual cockroaches exhibit emergent behavior patterns and react to environmental stimuli.
 
-- HTML5
-- CSS3
-- JavaScript
+### [Langton's Ant](https://egapool.github.io/ai-playground/langtons-ant/)
 
-## How to Run Locally
+An implementation of the classic cellular automaton invented by Christopher Langton. This project demonstrates how complex patterns can emerge from simple rules, creating an intriguing visual representation of mathematical principles.
 
-1. Clone or download this repository.
-2. Open the [index.html](file:///Users/egapool/Develop/projects/ai-playground/index.html#1%2C1-1%2C1) file in a browser.
+## Tech Stack
 
-## Project Structure
+- HTML5 Canvas for dynamic rendering
+- Vanilla JavaScript for computation and animation
+- CSS3 for styling and layout
 
-- [index.html](file:///Users/egapool/Develop/projects/ai-playground/index.html#1%2C1-1%2C1): Contains the overall markup and scripts for the simulation.
-- CSS is written directly within the `<style>` tag, providing basic styling.
-- JavaScript is contained within the `<script>` tag, handling the logic of the simulation.
+## Running Locally
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/egapool/ai-playground.git
+```
+
+2. Navigate to any project directory and open `index.html` in your browser to explore the simulations.
+
+## Contributing
+
+Feel free to open issues or submit pull requests. All contributions are welcome!
