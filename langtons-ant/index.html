@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background: linear-gradient(
+          135deg,
+          #1a2b45 0%,
+          #152238 50%,
+          #0f1b2b 100%
+        );
+        overflow: hidden;
+      }
+      canvas {
+        flex-grow: 1;
+      }
+      .controls {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 10px 20px;
+        border-radius: 20px;
+        backdrop-filter: blur(5px);
+      }
+      button {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 8px 16px;
+        margin: 0 5px;
+        cursor: pointer;
+        border-radius: 15px;
+        font-family: sans-serif;
+        transition: all 0.3s ease;
+      }
+      button:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div class="controls">
+      <button id="startStop">開始</button>
+      <button id="reset">リセット</button>
+      <button id="addAnt">蟻を追加</button>
+    </div>
+    <script>
+      class LangtonAnt {
+        constructor(canvas) {
+          this.canvas = canvas;
+          this.ctx = canvas.getContext("2d");
+          this.cellSize = 4;
+          this.grid = new Map();
+          this.running = false;
+          this.speed = 100;
+          this.ants = [];
+
+          this.resizeCanvas();
+          window.addEventListener("resize", () => this.resizeCanvas());
+
+          this.directions = [
+            { dx: 0, dy: -1 },
+            { dx: 1, dy: 0 },
+            { dx: 0, dy: 1 },
+            { dx: -1, dy: 0 },
+          ];
+
+          this.reset();
+        }
+
+        resizeCanvas() {
+          this.canvas.width = window.innerWidth;
+          this.canvas.height = window.innerHeight;
+        }
+
+        createAnt(x, y) {
+          return {
+            x:
+              x !== undefined
+                ? x
+                : Math.floor(this.canvas.width / (2 * this.cellSize)),
+            y:
+              y !== undefined
+                ? y
+                : Math.floor(this.canvas.height / (2 * this.cellSize)),
+            direction: 0,
+            color: `hsl(${Math.random() * 360}, 80%, 70%)`,
+          };
+        }
+
+        addRandomAnt() {
+          const x = Math.floor(
+            Math.random() * (this.canvas.width / this.cellSize)
+          );
+          const y = Math.floor(
+            Math.random() * (this.canvas.height / this.cellSize)
+          );
+          this.ants.push(this.createAnt(x, y));
+          this.drawAnts();
+        }
+
+        reset() {
+          this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+          this.grid.clear();
+          this.ants = [this.createAnt()];
+          this.drawGrid();
+          this.drawAnts();
+        }
+
+        getCellKey(x, y) {
+          return `${x},${y}`;
+        }
+
+        drawCell(x, y, color) {
+          this.ctx.fillStyle = color;
+          this.ctx.fillRect(
+            x * this.cellSize,
+            y * this.cellSize,
+            this.cellSize,
+            this.cellSize
+          );
+        }
+
+        drawGrid() {
+          // グリッド線を描画
+          this.ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+          this.ctx.lineWidth = 0.5;
+
+          for (let x = 0; x <= this.canvas.width; x += this.cellSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.canvas.height);
+            this.ctx.stroke();
+          }
+
+          for (let y = 0; y <= this.canvas.height; y += this.cellSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.canvas.width, y);
+            this.ctx.stroke();
+          }
+
+          // グリッドのセルの状態を描画
+          for (let [key, value] of this.grid) {
+            const [x, y] = key.split(",").map(Number);
+            this.drawCell(
+              x,
+              y,
+              value ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.5)"
+            );
+          }
+        }
+
+        drawAnts() {
+          this.ants.forEach((ant) => {
+            this.ctx.fillStyle = ant.color;
+            this.ctx.fillRect(
+              ant.x * this.cellSize,
+              ant.y * this.cellSize,
+              this.cellSize,
+              this.cellSize
+            );
+          });
+        }
+
+        step() {
+          this.ants.forEach((ant) => {
+            const key = this.getCellKey(ant.x, ant.y);
+            const currentColor = this.grid.get(key) || false;
+
+            this.grid.set(key, !currentColor);
+            this.drawCell(
+              ant.x,
+              ant.y,
+              !currentColor ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.5)"
+            );
+
+            if (currentColor) {
+              ant.direction = (ant.direction + 3) % 4;
+            } else {
+              ant.direction = (ant.direction + 1) % 4;
+            }
+
+            ant.x += this.directions[ant.direction].dx;
+            ant.y += this.directions[ant.direction].dy;
+
+            ant.x =
+              (ant.x + Math.floor(this.canvas.width / this.cellSize)) %
+              Math.floor(this.canvas.width / this.cellSize);
+            ant.y =
+              (ant.y + Math.floor(this.canvas.height / this.cellSize)) %
+              Math.floor(this.canvas.height / this.cellSize);
+          });
+
+          this.drawAnts();
+        }
+
+        start() {
+          if (!this.running) {
+            this.running = true;
+            this.run();
+          }
+        }
+
+        stop() {
+          this.running = false;
+        }
+
+        run() {
+          if (this.running) {
+            this.step();
+            setTimeout(() => this.run(), 1000 / this.speed);
+          }
+        }
+      }
+
+      // 初期化
+      const canvas = document.getElementById("canvas");
+      const ant = new LangtonAnt(canvas);
+      const startStopButton = document.getElementById("startStop");
+      const resetButton = document.getElementById("reset");
+      const addAntButton = document.getElementById("addAnt");
+
+      startStopButton.addEventListener("click", () => {
+        if (ant.running) {
+          ant.stop();
+          startStopButton.textContent = "開始";
+        } else {
+          ant.start();
+          startStopButton.textContent = "停止";
+        }
+      });
+
+      resetButton.addEventListener("click", () => {
+        ant.stop();
+        ant.reset();
+        startStopButton.textContent = "開始";
+      });
+
+      addAntButton.addEventListener("click", () => {
+        ant.addRandomAnt();
+      });
+    </script>
+  </body>
+</html>
