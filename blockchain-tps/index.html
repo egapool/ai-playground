@@ -1,0 +1,344 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ブロックチェーンTPS可視化シミュレーター</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #f4f7f9;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    /* レイアウト：左サイドバーと右メインコンテンツ */
+    .flex-container {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    #sidebar {
+      flex: 0 0 300px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      height: fit-content;
+    }
+    #main {
+      flex: 1;
+      min-width: 300px;
+    }
+    /* パラメータ入力 */
+    .parameter {
+      display: flex;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    .parameter label {
+      flex: 0 0 140px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .parameter input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 5px;
+    }
+    .button-group {
+      text-align: center;
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      background: #007bff;
+      color: #fff;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-right: 10px;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    button:hover:not(:disabled) {
+      background: #0056b3;
+    }
+    /* TPS表示・グラフ */
+    #tpsDisplay {
+      text-align: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+    #tpsChart {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      margin-bottom: 30px;
+    }
+    /* 影響度テーブル */
+    #sensitivityDisplay table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      margin-top: 20px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    #sensitivityDisplay th, #sensitivityDisplay td {
+      padding: 12px;
+      text-align: center;
+      border-bottom: 1px solid #eee;
+    }
+    #sensitivityDisplay th {
+      background: #007bff;
+      color: #fff;
+      font-weight: 700;
+    }
+    #sensitivityDisplay tr:last-child td {
+      border-bottom: none;
+    }
+    @media (max-width: 768px) {
+      .flex-container {
+        flex-direction: column;
+      }
+      #sidebar {
+        width: 100%;
+      }
+    }
+  </style>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>ブロックチェーンTPS可視化シミュレーター</h1>
+    <div class="flex-container">
+      <!-- 左サイドバー：パラメータ調整 -->
+      <div id="sidebar">
+        <!-- パラメータ入力 -->
+        <div class="parameter">
+          <label for="blockInterval">ブロック間隔 (秒):</label>
+          <!-- デフォルトを3秒に -->
+          <input type="number" id="blockInterval" value="3" step="0.1">
+        </div>
+        <div class="parameter">
+          <label for="nodeCount">ノード数:</label>
+          <input type="number" id="nodeCount" value="50">
+        </div>
+        <div class="parameter">
+          <label for="connectionsPerNode">1ノードの接続数:</label>
+          <input type="number" id="connectionsPerNode" value="8">
+        </div>
+        <div class="parameter">
+          <label for="networkDistance">ノード間の距離 (ms):</label>
+          <input type="number" id="networkDistance" value="100">
+        </div>
+        <div class="parameter">
+          <label for="txCapacity">1Txの容量 (KB):</label>
+          <input type="number" id="txCapacity" value="1">
+        </div>
+        <div class="parameter">
+          <label for="blockSize">ブロックサイズ (Tx数):</label>
+          <input type="number" id="blockSize" value="1000">
+        </div>
+        <div class="parameter">
+          <label for="networkBandwidth">帯域幅 (Mbps):</label>
+          <input type="number" id="networkBandwidth" value="100">
+        </div>
+        <div class="parameter">
+          <label for="processingDelay">ノード処理遅延 (ms):</label>
+          <input type="number" id="processingDelay" value="10">
+        </div>
+        <div class="parameter">
+          <label for="consensusDelay">コンセンサス遅延 (ms):</label>
+          <input type="number" id="consensusDelay" value="50">
+        </div>
+        <div class="parameter">
+          <label for="packetLossRate">パケットロス率 (%):</label>
+          <input type="number" id="packetLossRate" value="1" step="0.1">
+        </div>
+        <div class="parameter">
+          <label for="txVerificationTime">Tx検証時間 (ms):</label>
+          <input type="number" id="txVerificationTime" value="1">
+        </div>
+        <div class="parameter">
+          <label for="jitter">ジッター (ms):</label>
+          <input type="number" id="jitter" value="20">
+        </div>
+        <div class="button-group">
+          <button id="startBtn">シミュ開始</button>
+          <button id="stopBtn" disabled>シミュ停止</button>
+        </div>
+      </div>
+      <!-- 右カラム：TPS表示、グラフ、影響度テーブル -->
+      <div id="main">
+        <h2>TPS結果</h2>
+        <div id="tpsDisplay">現在のTPS: <span id="tpsValue">0</span></div>
+        <canvas id="tpsChart" width="800" height="400"></canvas>
+        <h2>パラメータ影響度 (TPSへの弾性)</h2>
+        <div id="sensitivityDisplay"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let simulationTimeout;
+    let simulationRunning = false;
+    let simulationStepCount = 0;
+    let tpsData = [];
+    let labels = [];
+    let chart;
+
+    function getParameterValues() {
+      return {
+        blockInterval: parseFloat(document.getElementById('blockInterval').value),
+        nodeCount: parseInt(document.getElementById('nodeCount').value),
+        connectionsPerNode: parseInt(document.getElementById('connectionsPerNode').value),
+        networkDistance: parseFloat(document.getElementById('networkDistance').value),
+        txCapacity: parseFloat(document.getElementById('txCapacity').value),
+        blockSize: parseInt(document.getElementById('blockSize').value),
+        networkBandwidth: parseFloat(document.getElementById('networkBandwidth').value),
+        processingDelay: parseFloat(document.getElementById('processingDelay').value),
+        consensusDelay: parseFloat(document.getElementById('consensusDelay').value),
+        packetLossRate: parseFloat(document.getElementById('packetLossRate').value),
+        txVerificationTime: parseFloat(document.getElementById('txVerificationTime').value),
+        jitter: parseFloat(document.getElementById('jitter').value)
+      };
+    }
+
+    function calculateTPS(params) {
+      let transmissionTime = (params.blockSize * params.txCapacity * 8192) / (params.networkBandwidth * 1e6);
+      let propagationDelay = transmissionTime + ((params.networkDistance + params.jitter / 2) / 1000);
+      let consensusDelaySec = params.consensusDelay / 1000;
+      let processingDelaySec = params.processingDelay / 1000;
+      let txVerificationDelaySec = (params.txVerificationTime * params.blockSize) / 1000;
+      let totalCycleTime = params.blockInterval + propagationDelay + consensusDelaySec + processingDelaySec + txVerificationDelaySec;
+      let effectiveTxCount = params.blockSize * (1 - params.packetLossRate / 100);
+      return effectiveTxCount / totalCycleTime;
+    }
+
+    function updateChart() {
+      if (chart) { chart.update(); }
+    }
+
+    function updateSensitivityDisplay() {
+      let params = getParameterValues();
+      let A = params.blockInterval;
+      let X = params.blockSize;
+      let r = params.packetLossRate;
+      let r_factor = (1 - r / 100);
+      let networkComponent = (params.networkDistance + params.jitter / 2) / 1000;
+      let consensusDelaySec = params.consensusDelay / 1000;
+      let processingDelaySec = params.processingDelay / 1000;
+      let C = A + networkComponent + consensusDelaySec + processingDelaySec;
+      let a = (params.txCapacity * 8192) / (params.networkBandwidth * 1e6);
+      let b = params.txVerificationTime / 1000;
+      let T = C + X * (a + b);
+      let TPS = X * r_factor / T;
+
+      let sensitivities = [];
+      sensitivities.push({ name: "ブロックサイズ", value: X, elasticity: C / T });
+      sensitivities.push({ name: "ブロック間隔", value: A, elasticity: -A / T });
+      sensitivities.push({ name: "Tx検証時間", value: params.txVerificationTime, elasticity: - (X * params.txVerificationTime / 1000) / T });
+      sensitivities.push({ name: "パケットロス率", value: params.packetLossRate, elasticity: - (params.packetLossRate / (100 - params.packetLossRate)) });
+      sensitivities.push({ name: "ノード間距離", value: params.networkDistance, elasticity: - (params.networkDistance / 1000) / T });
+      sensitivities.push({ name: "帯域幅", value: params.networkBandwidth, elasticity: (X * params.txCapacity * 8192) / (T * params.networkBandwidth * 1e6) });
+      sensitivities.push({ name: "1Tx容量", value: params.txCapacity, elasticity: - (X * (8192 / (params.networkBandwidth * 1e6))) / T });
+      sensitivities.push({ name: "コンセンサス遅延", value: params.consensusDelay, elasticity: - (params.consensusDelay / 1000) / T });
+      sensitivities.push({ name: "ジッター", value: params.jitter, elasticity: - ((params.jitter / 2) / 1000) / T });
+      sensitivities.push({ name: "ノード処理遅延", value: params.processingDelay, elasticity: - (params.processingDelay / 1000) / T });
+      sensitivities.push({ name: "ノード数", value: params.nodeCount, elasticity: 0 });
+      sensitivities.push({ name: "接続数", value: params.connectionsPerNode, elasticity: 0 });
+      
+      sensitivities.sort(function(a, b) {
+        return Math.abs(b.elasticity) - Math.abs(a.elasticity);
+      });
+      
+      let html = '<table><tr><th>パラメータ</th><th>値</th><th>TPS弾性</th><th>影響</th></tr>';
+      sensitivities.forEach(function(item) {
+        let elasticityPercent = (item.elasticity * 100).toFixed(2) + "%";
+        let impact = item.elasticity > 0 ? "増加→TPS増加" : (item.elasticity < 0 ? "増加→TPS減少" : "影響なし");
+        html += '<tr><td>' + item.name + '</td><td>' + item.value + '</td><td>' + elasticityPercent + '</td><td>' + impact + '</td></tr>';
+      });
+      html += '</table>';
+      
+      document.getElementById('sensitivityDisplay').innerHTML = html;
+    }
+
+    function simulationStep() {
+      if (!simulationRunning) return;
+      simulationStepCount++;
+      let params = getParameterValues();
+      let currentTPS = calculateTPS(params);
+      tpsData.push(currentTPS);
+      labels.push(simulationStepCount);
+      document.getElementById('tpsValue').innerText = currentTPS.toFixed(2);
+      updateChart();
+      updateSensitivityDisplay();
+      simulationTimeout = setTimeout(simulationStep, params.blockInterval * 1000);
+    }
+
+    function startSimulation() {
+      simulationRunning = true;
+      simulationStepCount = 0;
+      tpsData = [];
+      labels = [];
+      if (chart) { chart.destroy(); }
+      const ctx = document.getElementById('tpsChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'TPS',
+            data: tpsData,
+            borderColor: 'blue',
+            fill: false,
+          }]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: { title: { display: true, text: 'ブロック生成回数' } },
+            y: { title: { display: true, text: 'TPS' } }
+          }
+        }
+      });
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('stopBtn').disabled = false;
+      updateSensitivityDisplay();
+      simulationStep();
+    }
+
+    function stopSimulation() {
+      simulationRunning = false;
+      clearTimeout(simulationTimeout);
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+    }
+
+    document.getElementById('startBtn').addEventListener('click', startSimulation);
+    document.getElementById('stopBtn').addEventListener('click', stopSimulation);
+  </script>
+</body>
+</html>

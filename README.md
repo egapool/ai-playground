@@ -4,6 +4,10 @@ A collection of experimental projects exploring AI algorithms and mathematical c
 
 ## Projects
 
+### [Blockchain TPS Simulator](https://egapool.github.io/ai-playground/blockchain-tps/)
+
+A visualization tool that simulates blockchain transaction processing speed (TPS) based on various network parameters. Adjust block intervals, node counts, network distances, and more to see how they affect transaction throughput. The simulator includes real-time TPS calculations, graphical representation, and parameter sensitivity analysis.
+
 ### [Cockroach Simulation](https://egapool.github.io/ai-playground/cockroach/)
 
 A fascinating simulation that models cockroach behavior, demonstrating swarm intelligence and photophobic responses. Watch as virtual cockroaches exhibit emergent behavior patterns and react to environmental stimuli.
@@ -17,6 +21,7 @@ An implementation of the classic cellular automaton invented by Christopher Lang
 - HTML5 Canvas for dynamic rendering
 - Vanilla JavaScript for computation and animation
 - CSS3 for styling and layout
+- Chart.js for data visualization
 
 ## Running Locally
 
