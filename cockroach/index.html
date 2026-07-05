@@ -42,6 +42,71 @@
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
 
+      // 空間ハッシュ: 画面をセルに分割し、近傍探索を O(N²) → O(N) にする
+      class SpatialGrid {
+        constructor(cellSize) {
+          this.cellSize = cellSize;
+          this.cols = 0;
+          this.rows = 0;
+          this.cells = [];
+          this.resize();
+        }
+
+        resize() {
+          this.cols = Math.max(1, Math.ceil(canvas.width / this.cellSize));
+          this.rows = Math.max(1, Math.ceil(canvas.height / this.cellSize));
+          const cellCount = this.cols * this.rows;
+          // セル配列は使い回してGC圧を抑える
+          while (this.cells.length < cellCount) {
+            this.cells.push([]);
+          }
+          this.cells.length = cellCount;
+        }
+
+        clear() {
+          for (const cell of this.cells) {
+            cell.length = 0;
+          }
+        }
+
+        insert(creature) {
+          const col = Math.min(
+            this.cols - 1,
+            Math.max(0, Math.floor(creature.x / this.cellSize))
+          );
+          const row = Math.min(
+            this.rows - 1,
+            Math.max(0, Math.floor(creature.y / this.cellSize))
+          );
+          this.cells[row * this.cols + col].push(creature);
+        }
+
+        // (x, y) から半径 radius に重なるセル内の全要素に callback を呼ぶ
+        forEachInRange(x, y, radius, callback) {
+          const minCol = Math.max(0, Math.floor((x - radius) / this.cellSize));
+          const maxCol = Math.min(
+            this.cols - 1,
+            Math.floor((x + radius) / this.cellSize)
+          );
+          const minRow = Math.max(0, Math.floor((y - radius) / this.cellSize));
+          const maxRow = Math.min(
+            this.rows - 1,
+            Math.floor((y + radius) / this.cellSize)
+          );
+
+          for (let row = minRow; row <= maxRow; row++) {
+            for (let col = minCol; col <= maxCol; col++) {
+              const cell = this.cells[row * this.cols + col];
+              for (let i = 0; i < cell.length; i++) {
+                callback(cell[i]);
+              }
+            }
+          }
+        }
+      }
+
+      const grid = new SpatialGrid(100);
+
       class BaseCreature {
         constructor() {
           this.x = Math.random() * canvas.width;
@@ -54,11 +119,11 @@
           this.isMoving = false;
         }
 
-        avoidOverlap(creatures) {
+        avoidOverlap(grid) {
           const repulsionForce = 0.5;
           const minDistance = this.radius * 2;
 
-          creatures.forEach((other) => {
+          grid.forEachInRange(this.x, this.y, minDistance, (other) => {
             if (other !== this && other instanceof Hunter) {
               const distance = Math.hypot(this.x - other.x, this.y - other.y);
               if (distance < minDistance) {
@@ -214,18 +279,18 @@
           ctx.restore();
         }
 
-        update(creatures, feces) {
+        update(grid, feces) {
           if (!this.alive) return;
 
           let closestTarget = null;
           let closestTargetDistance = Infinity;
 
-          const targets = creatures.filter(
-            (c) => c instanceof Prey && this.radius * 0.7 > c.radius
-          );
-
-          targets.forEach((prey) => {
-            if (prey.alive) {
+          grid.forEachInRange(this.x, this.y, this.searchRadius, (prey) => {
+            if (
+              prey instanceof Prey &&
+              prey.alive &&
+              this.radius * 0.7 > prey.radius
+            ) {
               const distance = Math.hypot(prey.x - this.x, prey.y - this.y);
               if (
                 distance < this.searchRadius &&
@@ -256,7 +321,7 @@
             return;
           }
 
-          this.avoidOverlap(creatures);
+          this.avoidOverlap(grid);
           this.updatePosition();
 
           // 捕食処理
@@ -337,7 +402,7 @@
           ctx.restore();
         }
 
-        update(creatures, feces) {
+        update(grid, feces) {
           if (!this.alive) return;
 
           let closestHunter = null;
@@ -345,7 +410,7 @@
           let closestFeces = null;
           let closestFecesDistance = Infinity;
 
-          creatures.forEach((creature) => {
+          grid.forEachInRange(this.x, this.y, this.searchRadius, (creature) => {
             if (creature instanceof Hunter && creature.alive) {
               const distance = Math.hypot(
                 creature.x - this.x,
@@ -457,7 +522,13 @@
         ctx.fillStyle = "rgba(44, 62, 80, 0.2)";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        creatures.forEach((creature) => creature.update(creatures, feces));
+        // フレーム開始時に全生物をグリッドに登録
+        grid.clear();
+        for (const creature of creatures) {
+          grid.insert(creature);
+        }
+
+        creatures.forEach((creature) => creature.update(grid, feces));
         feces.forEach((fece) => fece.draw());
 
         creatures = creatures.filter((creature) => creature.alive);
@@ -470,6 +541,7 @@
       window.addEventListener("resize", () => {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
+        grid.resize();
       });
 
       window.addEventListener("keydown", (event) => {
